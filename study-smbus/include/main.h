@@ -16,14 +16,10 @@
 #define USER_BUTTON_GPIO_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
 #define USER_BUTTON_EXTI_IRQn EXTI15_10_IRQn
 #define BSP_ERROR_NONE 0
+#define LEDn 1U
+#define LED2_PIN GPIO_PIN_13
+#define LED2_GPIO_PORT GPIOC
 
-static void SystemClock_Config(void);
-static void Error_Check(SMBUS_StackHandleTypeDef *pStackContext);
-static const IRQn_Type BUTTON_IRQn[BUTTONn] = {USER_BUTTON_EXTI_IRQn};
-
-EXTI_HandleTypeDef hExtiButtonHandle[BUTTONn];
-SMBUS_HandleTypeDef handle1;
-SMBUS_StackHandleTypeDef context1;
 
 typedef enum
 {
@@ -36,9 +32,21 @@ typedef enum
     BUTTON_MODE_EXTI = 1U
 } ButtonMode_TypeDef;
 
+typedef enum
+{
+    LED2 = 0U,
+    LED_GREEN = LED2
+} Led_TypeDef;
+
 typedef void (*BSP_EXTI_LineCallback)(void);
 
-static GPIO_TypeDef *BUTTON_PORT[BUTTONn] = {USER_BUTTON_GPIO_PORT};
-static const uint16_t BUTTON_PIN[BUTTONn] = {USER_BUTTON_PIN};
+static void SystemClock_Config(void);
+static void Error_Check(SMBUS_StackHandleTypeDef *pStackContext);
+
+int32_t BSP_LED_Init(Led_TypeDef Led);
+int32_t BSP_LED_On(Led_TypeDef Led);
+int32_t BSP_LED_Off(Led_TypeDef Led);
+
+void Error_Handler(void);
 
 #endif /*MAIN_H*/
