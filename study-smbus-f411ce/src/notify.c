@@ -3,11 +3,6 @@
 #define LED_PORT GPIOC
 #define LED_PIN GPIO_PIN_13
 
-typedef enum
-{
-    LED_GREEN
-} Led_TypeDef;
-
 int32_t BSP_LED_Init()
 {
     
@@ -29,17 +24,13 @@ int32_t BSP_LED_Init()
     return 0;
 }
 
-int32_t BSP_LED_On(Led_TypeDef Led)
+void BSP_LED_On(Led_TypeDef Led)
 {
     HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);
-
-    return 0;
 }
-int32_t BSP_LED_Off(Led_TypeDef Led)
+void BSP_LED_Off(Led_TypeDef Led)
 {
     HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
-
-    return 0;
 }
 void Fail_Notify()
 {
