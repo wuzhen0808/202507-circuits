@@ -14,7 +14,10 @@ void setup()
 {
   HAL_Init();  // 显式初始化 HAL 库（可选）
   SystemClock_Config();  // 确保时钟配置正确
-  Serial.begin(115200);
+  Serial.setTx(PB6);
+  Serial.setRx(PB7);
+  Serial.begin(9600);
+
   Serial.println(__FILE__);
   Serial.print("INA226_LIB_VERSION: ");
   Serial.println(INA226_LIB_VERSION);
@@ -40,7 +43,7 @@ void loop()
     float cmA = INA.getCurrent_mA();    
     float pmW = INA.getPower_mW();
 
-     Serial.print(bv);
+    Serial.print(bv);
     Serial.print("\t");
     Serial.print(sv);
     Serial.print("\t");
