@@ -139,7 +139,7 @@ void doTest(SMBUS_HandleTypeDef *pHsmbus1)
 void doInWhile()
 {
 
-  HAL_Delay(500);
+  HAL_Delay(2000);
   if (slave1Ready)
   {
     Ok_Notify();
@@ -149,7 +149,9 @@ void doInWhile()
     Fail_Notify();
     // 设备未就绪处理
   }
-
+  
+  HAL_Delay(1000);
+  
   if (slave2Ready)
   {
     Ok_Notify();

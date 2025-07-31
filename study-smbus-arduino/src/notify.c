@@ -5,7 +5,7 @@
 
 int32_t BSP_LED_Init()
 {
-    
+
     GPIO_InitTypeDef gpio_init_structure;
 
     /* Enable the GPIO LED Clock */
@@ -34,30 +34,29 @@ void BSP_LED_Off(Led_TypeDef Led)
 }
 void Fail_Notify()
 {
+
+    HAL_Delay(100);
     BSP_LED_On(LED_GREEN);
-    HAL_Delay(500);
+    HAL_Delay(100);
     BSP_LED_Off(LED_GREEN);
     HAL_Delay(100);
-    for (int i = 0; i < 5; i++)
-    {
-        BSP_LED_On(LED_GREEN);
-        HAL_Delay(50);
-        BSP_LED_Off(LED_GREEN);
-        HAL_Delay(50);
-    }
+    BSP_LED_On(LED_GREEN);
+    HAL_Delay(100);
+    BSP_LED_Off(LED_GREEN);
+    HAL_Delay(100);
+    
+    
 }
 
 void Ok_Notify()
 {
     BSP_LED_On(LED_GREEN);
-    HAL_Delay(500);
+    HAL_Delay(300);
+    BSP_LED_Off(LED_GREEN);
+    HAL_Delay(300);
+    BSP_LED_On(LED_GREEN);
+    HAL_Delay(300);
     BSP_LED_Off(LED_GREEN);
     HAL_Delay(100);
-    for (int i = 0; i < 2; i++)
-    {
-        BSP_LED_On(LED_GREEN);
-        HAL_Delay(125);
-        BSP_LED_Off(LED_GREEN);
-        HAL_Delay(125);
-    }
+    
 }
