@@ -6,15 +6,16 @@
 
 class AIP31068 : public Device
 {
-    private :
+private:
     uint8_t address;
-    LiquidCrystal_AIP31068_I2C* lcd;
+    LiquidCrystal_AIP31068_I2C *lcd;
+    char lastLine[16 + 1];
 
 public:
     AIP31068(uint8_t address);
     ~AIP31068();
     int init();
-    void print(const char * text);
+    void print(const char *text);
 };
 
 #endif // AIP31068_H

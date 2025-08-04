@@ -33,5 +33,21 @@ int AIP31068::init()
 
 void AIP31068::print(const char *text)
 {
+    this->lcd->clear();
+
+    this->lcd->setCursor(0, 0);
+    this->lcd->print(this->lastLine);
+
+    this->lcd->setCursor(0, 1);
     this->lcd->print(text);
+
+    this->lastLine[16] = '\0';
+    for (int i = 0; i < 16; i++)
+    {
+        this->lastLine[i] = text[i];
+        if (this->lastLine[i] == '\0')
+        {
+            break;
+        }
+    }
 }

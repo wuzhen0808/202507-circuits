@@ -1,11 +1,13 @@
 #include "LM5066.h"
+#define PMBC_STATUS_TEMPERATURE         ((uint8_t)0x7D)
+#define READ            ((uint8_t)0x20)    /*!< Read operation / fixed size read only command */
 LM5066::LM5066(uint8_t address)
 {
     this->address = address;
 }
 LM5066::~LM5066()
 {
-    // Destructor implementation
+    
 }
 
 int LM5066::init()
@@ -39,4 +41,22 @@ bool LM5066::isReady(){
 
     HAL_StatusTypeDef status = HAL_SMBUS_IsDeviceReady(&hsmbus1, (uint16_t)(this->address << 1), 3, 5);
     return status == HAL_OK;
+}
+
+int LM5066::readTemperature()
+{
+    HAL_SMBUS_DisableListen_IT(&hsmbus1);
+
+    uint32_t xFerOptions = SMBUS_FIRST_AND_LAST_FRAME_NO_PEC;
+    uint16_t size = 1; // Assuming we want to read one byte
+    uint8_t buffer[3]; // Buffer to hold the read data
+    buffer[0] = PMBC_STATUS_TEMPERATURE;
+
+    HAL_StatusTypeDef result = HAL_SMBUS_Master_Transmit_IT( &hsmbus1, address, buffer, size, xFerOptions );
+    if (result != HAL_OK)
+    {
+        return -1;
+    }
+    
+    return 0;
 }

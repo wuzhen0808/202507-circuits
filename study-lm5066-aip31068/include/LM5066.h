@@ -13,6 +13,7 @@ public:
     ~LM5066();
     int init();
     bool isReady();
+    int readTemperature();
 };
 
 #endif
