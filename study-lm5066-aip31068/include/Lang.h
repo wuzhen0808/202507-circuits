@@ -4,5 +4,8 @@
 #define OK 0
 #define IS_OK(errorCode) ((errorCode) == OK)
 #define IS_FAIL(errorCode) ((errorCode) != OK)
+namespace a9
+{
 
+}
 #endif

@@ -1,33 +1,36 @@
 #include "Board.h"
 #include "Wire.h"
 
-
-Board::Board()
+namespace a9
 {
-    // Constructor implementation
-}
-Board::~Board()
-{
-    // Destructor implementation
-}
 
-int Board::init()
-{
-    // Initialization code for the board
-    HAL_Init();
-    // Additional setup can be added here
-    SystemClock_Config();
+    Board::Board()
+    {
+        // Constructor implementation
+    }
+    Board::~Board()
+    {
+        // Destructor implementation
+    }
 
-    // Gpio initialization
+    int Board::init()
+    {
+        // Initialization code for the board
+        HAL_Init();
+        // Additional setup can be added here
+        SystemClock_Config();
 
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    // SMBus init
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // 启用 DWT
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;            // 启用周期计数器
-    DWT->CYCCNT = 0;
+        // Gpio initialization
 
-    Wire.setSCL(PB8);
-    Wire.setSDA(PB9);
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+        // SMBus init
+        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // 启用 DWT
+        DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;            // 启用周期计数器
+        DWT->CYCCNT = 0;
 
-    return OK;
+        Wire.setSCL(PB8);
+        Wire.setSDA(PB9);
+
+        return OK;
+    }
 }

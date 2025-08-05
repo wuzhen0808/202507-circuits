@@ -1,12 +1,17 @@
 #include "Model.h"
+namespace a9
+{
+    Model::Model() {
 
-Model::Model() {
+    };
+    Model::~Model()
+    {
+        // Destructor implementation
+    }
 
-};
-Model::~Model() {
-    // Destructor implementation
-}
+    void Model::update()
+    {
+        // Update logic for the model
+    }
 
-void Model::update() {
-    // Update logic for the model
 }

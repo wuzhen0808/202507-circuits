@@ -2,13 +2,15 @@
 
 #ifndef __VIEW_H_
 #define __VIEW_H_
-class View{
+namespace a9
+{
+    class View
+    {
     private:
-        
     public:
-        View() ;
-        ~View() ;
+        View();
+        ~View();
         void update();
-};
-
+    };
+}
 #endif

@@ -3,16 +3,15 @@
 #define __BOARD_H_
 #include "stm32f4xx_hal.h"
 #include "Lang.h"
-
-class Board
+namespace a9
 {
-private:
-
-
-public:
-    Board();
-    ~Board();
-    int init();
-};
-
+    class Board
+    {
+    private:
+    public:
+        Board();
+        ~Board();
+        int init();
+    };
+}
 #endif

@@ -1,62 +1,134 @@
 #include "LM5066.h"
-#define PMBC_STATUS_TEMPERATURE         ((uint8_t)0x7D)
-#define READ            ((uint8_t)0x20)    /*!< Read operation / fixed size read only command */
-LM5066::LM5066(uint8_t address)
+#include "Wire.h"
+#define PMBC_STATUS_TEMPERATURE ((uint8_t)0x7D)
+#define READ ((uint8_t)0x20) /*!< Read operation / fixed size read only command */
+namespace a9
 {
-    this->address = address;
-}
-LM5066::~LM5066()
-{
-    
-}
 
-int LM5066::init()
-{
-    if (Device::init() != OK)
+    LM5066::LM5066(uint8_t address, AIP31068 *aip31068)
     {
-        return -1;
+        this->address = address;
+        this->aip31068 = aip31068;
+    }
+    LM5066::~LM5066()
+    {
     }
 
-    hsmbus1.Instance = I2C1;
-    hsmbus1.Init.ClockSpeed = 100000;
-    hsmbus1.Init.OwnAddress1 = 0;
-    hsmbus1.Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
-    hsmbus1.Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
-    hsmbus1.Init.OwnAddress2 = 0;
-    hsmbus1.Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
-    hsmbus1.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
-    hsmbus1.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
-    hsmbus1.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
-    if (HAL_SMBUS_Init(&hsmbus1) == HAL_OK)
+    int LM5066::init()
     {
-        return OK;
+        if (Device::init() != OK)
+        {
+            return -1;
+        }
+
+        // pHsmbus1->Instance = I2C1;
+        // pHsmbus1->Init.ClockSpeed = 100000;
+        // pHsmbus1->Init.OwnAddress1 = 0;
+        // pHsmbus1->Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
+        // pHsmbus1->Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
+        // pHsmbus1->Init.OwnAddress2 = 0;
+        // pHsmbus1->Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
+        // pHsmbus1->Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
+        // pHsmbus1->Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
+        // pHsmbus1->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
+        // if (HAL_SMBUS_Init(pHsmbus1) == HAL_OK)
+        // {
+        //     return OK;
+        // }
+        // else
+        // {
+        //     return -1;
+        // }
+        return 0;
     }
-    else
+
+    bool LM5066::isReady()
     {
-        return -1;
+
+        // return status == HAL_OK;
+        uint32_t start = millis();
+        int trials = 3;
+        uint32_t timeout = 1000; // milliseconds
+
+        for (uint8_t i = 0; i < trials; i++)
+        {
+            if (millis() - start > timeout)
+                return 3; // TIMEOUT
+            Wire.beginTransmission(this->address);
+            if (Wire.endTransmission(true) == 0)
+            {
+                return true; // OK
+            }
+            delay(100);
+        }
+        return false; // ERROR
     }
-}
 
-bool LM5066::isReady(){
-
-    HAL_StatusTypeDef status = HAL_SMBUS_IsDeviceReady(&hsmbus1, (uint16_t)(this->address << 1), 3, 5);
-    return status == HAL_OK;
-}
-
-int LM5066::readTemperature()
-{
-    HAL_SMBUS_DisableListen_IT(&hsmbus1);
-
-    uint32_t xFerOptions = SMBUS_FIRST_AND_LAST_FRAME_NO_PEC;
-    uint16_t size = 1; // Assuming we want to read one byte
-    uint8_t buffer[3]; // Buffer to hold the read data
-    buffer[0] = PMBC_STATUS_TEMPERATURE;
-
-    HAL_StatusTypeDef result = HAL_SMBUS_Master_Transmit_IT( &hsmbus1, address, buffer, size, xFerOptions );
-    if (result != HAL_OK)
+    int LM5066::read(uint8_t code, uint8_t dataLen, char *buffer)
     {
-        return -1;
+        Wire.beginTransmission(this->address);
+        Wire.write(code);                             // 发送命令
+        uint8_t result = Wire.endTransmission(false); // false = 不发送 STOP，使用 Repeated Start
+
+        if (result != 0)
+        {
+            aip31068->print("命令发送失败，错误码: ");
+            aip31068->print(result);
+            return -1; // 发送失败
+        }
+
+        Wire.requestFrom(this->address, (uint8_t)1);
+
+        if (Wire.available() < dataLen)
+        {
+            aip31068->print("数据未准备好或设备无响应");
+            return -1; // 数据不足
+        }
+        size_t realLen = Wire.readBytes(buffer, dataLen); // 读取数据
+
+        return realLen; // 成功
     }
-    
-    return 0;
+
+    int LM5066::readInt8(uint8_t code, int8_t &value)
+    {
+        char buf[1];
+        int ret = read(code, 1, buf);
+        if (ret == 1)
+        {
+            value = (int8_t)buf[0]; // 将读取的字节转换为 int8_t
+            return ret;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    int LM5066::readByte(uint8_t code, char &data)
+    {
+        char buf[1];
+        int ret = read(code, 1, buf);
+        if (ret == 1)
+        {
+            data = buf[0]; // 将读取的字节存储在 data 中
+            return ret;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    int LM5066::readWord(uint8_t code, uint16_t &data)
+    {
+        char buf[2];
+        int ret = read(code, 2, buf);
+        if (ret == 2)
+        {
+            data = (uint16_t)((buf[0] << 8) | (buf[1] & 0xFF)); // 将读取的字节转换为 uint16_t
+            return ret;
+        }
+        else
+        {
+            return -1;
+        }
+    }
 }

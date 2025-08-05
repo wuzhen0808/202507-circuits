@@ -2,14 +2,16 @@
 
 #ifndef __MODEL_H_
 #define __MODEL_H_
-class Model{
+namespace a9
+{
+    class Model
+    {
     private:
-        
     public:
-        Model() ;
-        ~Model() ;
+        Model();
+        ~Model();
         void update();
-};
-
+    };
+}
 
 #endif
