@@ -38,7 +38,7 @@ namespace a9
         return OK;
     }
 
-    void AIP31068::print(const char* text)
+    AIP31068& AIP31068::print(const char* text)
     {   
         
         Buffer<String> texts = StringUtil::split(text, '\n');
@@ -86,6 +86,7 @@ namespace a9
             this->lcd->print(line);
         }
 
+        return *this;
         
     }
 }

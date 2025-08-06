@@ -72,21 +72,19 @@ namespace a9
 
         if (result != 0)
         {
-            aip31068->print("命令发送失败，错误码: ");
-            aip31068->print(result);
+            aip31068->print("<SdErr:").print(result).print(">");
             return -1; // 发送失败
         }
 
-        Wire.requestFrom(this->address, (uint8_t)1);
-
-        if (Wire.available() < dataLen)
+        Wire.requestFrom(this->address, dataLen);
+        int availableBytes = Wire.available();
+        if (availableBytes < dataLen)
         {
-            aip31068->print("数据未准备好或设备无响应");
-            return -1; // 数据不足
+            aip31068->print("<AvErr:").print(availableBytes).print(">");
+            return -1; // 没有可用数据
         }
-        size_t realLen = Wire.readBytes(buffer, dataLen); // 读取数据
-
-        return realLen; // 成功
+        Wire.readBytes(buffer, dataLen); // 读取数据
+        return dataLen;                  // 返回读取的字节数
     }
 
     int LM5066::readInt8(uint8_t code, int8_t &value)

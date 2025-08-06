@@ -21,20 +21,16 @@ namespace a9
         AIP31068(uint8_t address);
         ~AIP31068();
         int init();
-        void print(const char * text);
+        AIP31068& print(const char * text);
         
-        void print(const String text){
-            print(text.text());
+        AIP31068& print(const String text){
+            return print(text.text());
         }
 
-        void printLn()
+        AIP31068& ln()
         {
             print("\n");
-        }
-        void lnPrint(const String text)
-        {
-            printLn();
-            print(text);
+            return *this;
         }
 
     };
