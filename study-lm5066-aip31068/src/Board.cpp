@@ -19,10 +19,14 @@ namespace a9
         HAL_Init();
         // Additional setup can be added here
         SystemClock_Config();
-
+        
         // Gpio initialization
-
         __HAL_RCC_GPIOB_CLK_ENABLE();
+        
+        Serial.setTx(PB6);
+        Serial.setRx(PB7);
+        Serial.begin(9600); // Initialize serial communication at 9600 baud rate
+
         // SMBus init
         CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // 启用 DWT
         DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;            // 启用周期计数器

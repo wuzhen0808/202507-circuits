@@ -1,9 +1,11 @@
 #include "LM5066.h"
 #include "Wire.h"
+#include "a8/util.h"
 #define PMBC_STATUS_TEMPERATURE ((uint8_t)0x7D)
 #define READ ((uint8_t)0x20) /*!< Read operation / fixed size read only command */
 namespace a9
 {
+    using a8::util::Array;
 
     LM5066::LM5066(uint8_t address, AIP31068 *aip31068)
     {

@@ -1,5 +1,6 @@
 #include "AIP31068.h"
 #include "a8/util/StringUtil.h"
+
 namespace a9
 {
 
@@ -40,7 +41,9 @@ namespace a9
 
     AIP31068& AIP31068::print(const char* text)
     {   
-        
+        //
+        Serial.print(text);
+        //
         Buffer<String> texts = StringUtil::split(text, '\n');
 
         String *lastLine = this->lines.get(this->lines.size() - 1, 0);

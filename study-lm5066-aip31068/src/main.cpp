@@ -5,14 +5,27 @@
 #include "PMBus.h"
 #include "a8/util.h"
 
-
 namespace a9
 {
     using a8::util::Lang;
     using a8::util::StringUtil;
-
+    using a9::PMBus;
     uint8_t aipAddress = 0x7C >> 1; //
     uint8_t lmAddress = 0x15;       //
+
+    String format(PMBus::DataType type, char *buf, int len)
+    {
+
+        switch (type)
+        {
+        case PMBus::DataType::TEMPERATURE:
+            return String((int16_t)(buf[1] << 8 | buf[0]));
+        case PMBus::DataType::ASCII:
+            return String(buf + 1, (int)buf[0] - 1);
+        default:
+            return StringUtil::toHexString(buf, len);
+        }
+    }
     int main(void)
     {
         using namespace a9;
@@ -50,7 +63,7 @@ namespace a9
             aip31068.ln().print("LM5066 is ready");
 
             // 读取温度
-            Buffer<PMBus::Command> readCommands; 
+            Buffer<PMBus::Command> readCommands;
             PMBus::getCommands(PMBus::READ, readCommands);
             char buf[12] = {0}; // 读取数据缓冲区
 
@@ -60,11 +73,14 @@ namespace a9
                 char code = (char)cmd.code;
 
                 String codeStr = StringUtil::toHexString(&code, 1);
-                aip31068.ln().print(codeStr).print("=");
+                aip31068.ln().print("[").print(i).print("]").print(codeStr).print("=");
                 int error = lm5066.read(code, cmd.len, buf);
                 if (error > 0)
                 {
-                    aip31068.print(StringUtil::toHexString(buf, cmd.len));
+                    aip31068.print(StringUtil::toHexString(buf, cmd.len))
+                        .print("(")
+                        .print(format(cmd.type, buf, cmd.len))
+                        .print(")");
                 }
                 else
                 {
