@@ -2,22 +2,17 @@
 #include "Board.h"
 #include "AIP31068.h"
 #include "LM5066.h"
-#include "PMBusCommand.h"
+#include "PMBus.h"
 #include "a8/util.h"
+
 
 namespace a9
 {
     using a8::util::Lang;
     using a8::util::StringUtil;
 
-    uint8_t aipAddress = 0x7C >> 1;             //
-    uint8_t lmAddress = 0x15;                   //
-    int CMD_LEN = 2;
-    PMBusCommand COMMANDS[] = {
-        {0x7D, 1}, // STATUS_TEMPERATURE
-        {0x8D, 2}, // READ_TEMPERATURE_1
-    };
-
+    uint8_t aipAddress = 0x7C >> 1; //
+    uint8_t lmAddress = 0x15;       //
     int main(void)
     {
         using namespace a9;
@@ -55,24 +50,27 @@ namespace a9
             aip31068.ln().print("LM5066 is ready");
 
             // 读取温度
+            Buffer<PMBus::Command> readCommands; 
+            PMBus::getCommands(PMBus::READ, readCommands);
+            char buf[12] = {0}; // 读取数据缓冲区
 
-            char buf[2];
-            for (int i = 0; i < CMD_LEN; i++)
+            for (int i = 0; i < readCommands.len(); i++)
             {
-                char code = (char)COMMANDS[i].code;
+                PMBus::Command cmd = readCommands[i];
+                char code = (char)cmd.code;
+
                 String codeStr = StringUtil::toHexString(&code, 1);
                 aip31068.ln().print(codeStr).print("=");
-
-                int error = lm5066.read(COMMANDS[i].code, COMMANDS[i].len, buf);
+                int error = lm5066.read(code, cmd.len, buf);
                 if (error > 0)
                 {
-                    aip31068.print(StringUtil::toHexString(buf, COMMANDS[i].len));
+                    aip31068.print(StringUtil::toHexString(buf, cmd.len));
                 }
                 else
                 {
                     aip31068.print("<RdErr>");
                 }
-                //aip31068.ln();
+                // aip31068.ln();
             }
         }
         else

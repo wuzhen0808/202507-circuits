@@ -21,24 +21,6 @@ namespace a9
             return -1;
         }
 
-        // pHsmbus1->Instance = I2C1;
-        // pHsmbus1->Init.ClockSpeed = 100000;
-        // pHsmbus1->Init.OwnAddress1 = 0;
-        // pHsmbus1->Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
-        // pHsmbus1->Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
-        // pHsmbus1->Init.OwnAddress2 = 0;
-        // pHsmbus1->Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
-        // pHsmbus1->Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
-        // pHsmbus1->Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
-        // pHsmbus1->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
-        // if (HAL_SMBUS_Init(pHsmbus1) == HAL_OK)
-        // {
-        //     return OK;
-        // }
-        // else
-        // {
-        //     return -1;
-        // }
         return 0;
     }
 
@@ -87,46 +69,4 @@ namespace a9
         return dataLen;                  // 返回读取的字节数
     }
 
-    int LM5066::readInt8(uint8_t code, int8_t &value)
-    {
-        char buf[1];
-        int ret = read(code, 1, buf);
-        if (ret == 1)
-        {
-            value = (int8_t)buf[0]; // 将读取的字节转换为 int8_t
-            return ret;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-    int LM5066::readByte(uint8_t code, char &data)
-    {
-        char buf[1];
-        int ret = read(code, 1, buf);
-        if (ret == 1)
-        {
-            data = buf[0]; // 将读取的字节存储在 data 中
-            return ret;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-    int LM5066::readWord(uint8_t code, uint16_t &data)
-    {
-        char buf[2];
-        int ret = read(code, 2, buf);
-        if (ret == 2)
-        {
-            data = (uint16_t)((buf[0] << 8) | (buf[1] & 0xFF)); // 将读取的字节转换为 uint16_t
-            return ret;
-        }
-        else
-        {
-            return -1;
-        }
-    }
 }
