@@ -13,19 +13,6 @@ namespace a9
     uint8_t aipAddress = 0x7C >> 1; //
     uint8_t lmAddress = 0x15;       //
 
-    String format(PMBus::DataType type, char *buf, int len)
-    {
-
-        switch (type)
-        {
-        case PMBus::DataType::TEMPERATURE:
-            return String((int16_t)(buf[1] << 8 | buf[0]));
-        case PMBus::DataType::ASCII:
-            return String(buf + 1, (int)buf[0] - 1);
-        default:
-            return StringUtil::toHexString(buf, len);
-        }
-    }
     int main(void)
     {
         using namespace a9;
@@ -37,15 +24,18 @@ namespace a9
         }
 
         AIP31068 aip31068(aipAddress);
+        PMBus pmbus;
 
+        // aip31068
         if (IS_FAIL(aip31068.init()))
         {
             Error_Handler();
             return -1;
         }
         aip31068.ln().print("LM5066 Test");
-        LM5066 lm5066(lmAddress, &aip31068);
 
+        // lm5066
+        LM5066 lm5066(lmAddress, &aip31068, &pmbus);
         if (IS_FAIL(lm5066.init()))
         {
             aip31068.ln().print("LM5066 init failed");
@@ -64,8 +54,8 @@ namespace a9
 
             // 读取温度
             Buffer<PMBus::Command> readCommands;
-            PMBus::getCommands(PMBus::READ, readCommands);
-            char buf[12] = {0}; // 读取数据缓冲区
+            PMBus::getCommands(PMBus::Direction::READ, readCommands);
+            Buffer<char> buf; // 读取数据缓冲区
 
             for (int i = 0; i < readCommands.len(); i++)
             {
@@ -74,18 +64,23 @@ namespace a9
 
                 String codeStr = StringUtil::toHexString(&code, 1);
                 aip31068.ln().print("[").print(i).print("]").print(codeStr).print("=");
-                int error = lm5066.read(code, cmd.len, buf);
-                if (error > 0)
+                buf.clear();
+                int len = lm5066.read(cmd, buf);
+                if (len > 0)
                 {
-                    aip31068.print(StringUtil::toHexString(buf, cmd.len))
-                        .print("(")
-                        .print(format(cmd.type, buf, cmd.len))
-                        .print(")");
+
+                    aip31068.print(StringUtil::toHexString(buf.buffer(), len));
+                    aip31068.print("(");
+                    String fStr;
+                    cmd.formater(buf, len, fStr);
+                    aip31068.print(fStr);
+                    aip31068.print(")");
                 }
                 else
                 {
-                    aip31068.print("<RdErr>");
+                    aip31068.print("<RdErr:").print(len).print(">");
                 }
+
                 // aip31068.ln();
             }
         }

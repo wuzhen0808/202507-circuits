@@ -10,14 +10,14 @@ namespace a9
     private:
         uint8_t address;
         AIP31068 *aip31068;
+        PMBus *pmbus;
 
     public:
-        LM5066(uint8_t address, AIP31068 *aip31068);
+        LM5066(uint8_t address, AIP31068 *aip31068, PMBus *pmbus);
         ~LM5066();
         int init();
-        bool isReady();       
-        int read(uint8_t code, uint8_t dataLen, char *buffer);
-        
+        bool isReady();
+        int read(PMBus::Command &cmd, Buffer<char> &buffer);
     };
 }
 #endif

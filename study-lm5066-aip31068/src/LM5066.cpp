@@ -1,16 +1,16 @@
 #include "LM5066.h"
 #include "Wire.h"
 #include "a8/util.h"
-#define PMBC_STATUS_TEMPERATURE ((uint8_t)0x7D)
-#define READ ((uint8_t)0x20) /*!< Read operation / fixed size read only command */
+
 namespace a9
 {
     using a8::util::Array;
 
-    LM5066::LM5066(uint8_t address, AIP31068 *aip31068)
+    LM5066::LM5066(uint8_t address, AIP31068 *aip31068, PMBus * pmbus)
     {
         this->address = address;
         this->aip31068 = aip31068;
+        this->pmbus = pmbus;
     }
     LM5066::~LM5066()
     {
@@ -48,27 +48,9 @@ namespace a9
         return false; // ERROR
     }
 
-    int LM5066::read(uint8_t code, uint8_t dataLen, char *buffer)
+    int LM5066::read(PMBus::Command & cmd, Buffer<char> &buffer)
     {
-        Wire.beginTransmission(this->address);
-        Wire.write(code);                             // 发送命令
-        uint8_t result = Wire.endTransmission(false); // false = 不发送 STOP，使用 Repeated Start
-
-        if (result != 0)
-        {
-            aip31068->print("<SdErr:").print(result).print(">");
-            return -1; // 发送失败
-        }
-
-        Wire.requestFrom(this->address, dataLen);
-        int availableBytes = Wire.available();
-        if (availableBytes < dataLen)
-        {
-            aip31068->print("<AvErr:").print(availableBytes).print(">");
-            return -1; // 没有可用数据
-        }
-        Wire.readBytes(buffer, dataLen); // 读取数据
-        return dataLen;                  // 返回读取的字节数
+       return pmbus->read(this->address, cmd, buffer);
     }
 
 }
