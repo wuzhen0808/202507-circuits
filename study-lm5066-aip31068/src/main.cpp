@@ -53,27 +53,29 @@ namespace a9
             aip31068.ln().print("LM5066 is ready");
 
             // 读取温度
-            Buffer<PMBus::Command> readCommands;
-            PMBus::getCommands(PMBus::Direction::READ, readCommands);
+            Buffer<PMBus::Command*> readCommands;
+            pmbus.getCommands(PMBus::Direction::READ, readCommands);
             Buffer<char> buf; // 读取数据缓冲区
 
             for (int i = 0; i < readCommands.len(); i++)
             {
-                PMBus::Command cmd = readCommands[i];
-                char code = (char)cmd.code;
+                PMBus::Command* cmd = readCommands[i];
+                char code = (char)cmd->code;
 
                 String codeStr = StringUtil::toHexString(&code, 1);
                 aip31068.ln().print("[").print(i).print("]").print(codeStr).print("=");
                 buf.clear();
-                int len = lm5066.read(cmd, buf);
+                int len = lm5066.read(*cmd, buf);
                 if (len > 0)
                 {
 
                     aip31068.print(StringUtil::toHexString(buf.buffer(), len));
                     aip31068.print("(");
-                    String fStr;
-                    cmd.formater(buf, len, fStr);
-                    aip31068.print(fStr);
+                    
+                    String str;
+                    cmd->dataType->getAsString(buf, len, str);
+                    aip31068.print(str);
+
                     aip31068.print(")");
                 }
                 else
