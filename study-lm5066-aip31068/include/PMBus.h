@@ -8,6 +8,7 @@
 #define TRANS_FAIL -2
 #define AVAILABLE_FAIL -3
 #define AVAILABLE_FAIL_2 -4
+#define INVALID_ARGS -5
 
 namespace a9
 {
@@ -80,6 +81,26 @@ namespace a9
                 str.append(StringUtil::toHexString(buffer.buffer(), len));
             }
         };
+        class BinaryDataType : public DataType
+        {
+        public:
+            BinaryDataType()
+            {
+                this->isString = true;
+            }
+            void getAsString(Buffer<char> &buffer, int len, String &str) override
+            {
+                for (int i = 0; i < len; i++)
+                {
+                    char ch = buffer[i];
+                    for (int j = 7; j >= 0; j--)
+                    {
+                        str.append((ch & (1 << j)) ? '1' : '0');
+                    }
+                }
+            }
+        };
+
         class DirectDataType : public DataType
         {
             uint16_t m;
@@ -101,7 +122,6 @@ namespace a9
                     value0 = buf[1] << 8 | buf[0];
                 }
 
-            
                 fValue = ((float)value0 * pow<float, int>(10.0f, -R) - b) / (float)m;
             }
 
@@ -117,6 +137,7 @@ namespace a9
     private:
         AsciiDataType asciiDataType;
         HexDataType hexDataType;
+        BinaryDataType binaryDataType;
         DirectDataType D_4587_1200_2_V = DirectDataType(4587, -1200, -2, "V");          // READ_VIN, READ_AVG_VIN,VIN_OV_WARN_LIMIT,VIN_UV_WARN_LIMIT
         DirectDataType D_4587_2400_2_V = DirectDataType(4587, -2400, -2, "V");          // READ_VOUT, READ_AVG_VOUT/VOUT_UV_WARN_LIMIT
         DirectDataType D_13793_0_1_V = DirectDataType(13793, 0, -1, "V");               // READ_VAUX
@@ -124,7 +145,7 @@ namespace a9
         DirectDataType D_5405_600_2_A_CL_GND = DirectDataType(5405, -600, -2, "A");     // READ_IN, READ_AVG_IN(1)/MFR_IIN_OC_WARN_LIMIT
         DirectDataType D_1204_6000_3_A_CL_VDD = DirectDataType(1204, -6000, -3, "W");   // READ_PIN, READ_AVG_PIN(1)/READ_PIN_PEAK/MFR_PIN_OP_WARN_LIMIT
         DirectDataType D_605_8000_3_A_CL_GND = DirectDataType(605, -8000, -3, "W");     // READ_PIN, READ_AVG_PIN(1)/READ_PIN_PEAK/MFR_PIN_OP_WARN_LIMIT
-        DirectDataType D_16000_0_3_C = DirectDataType(16000, 0, -3, "°C");              //
+        DirectDataType D_16000_0_3_C = DirectDataType(16000, 0, -3, "°C");              // READ_TEMPERATURE_1/OT_WARN_LIMIT/OT_FAULT_LIMIT
 
         Buffer<Command *> commands;
         void add(uint8_t code, uint8_t direction,
@@ -149,6 +170,35 @@ namespace a9
                     buf.append(cmd);
                 }
             }
+        }
+
+        int write(uint8_t address, Command &cmd, Buffer<char> &buffer)
+        {
+            if (!(cmd.direction | WRITE))
+            {
+                return READ_CMD_ABUSE; // Invalid command for writing
+            }
+
+            if (cmd.len > 0 && buffer.length() < cmd.len)
+            {
+                return INVALID_ARGS; // 缓冲区长度不足
+            }
+
+            Wire.beginTransmission(address);
+            Wire.write(cmd.code); // 发送命令
+
+            for (int i = 0; i < cmd.len; i++)
+            {
+                Wire.write(buffer[i]); // 发送数据
+            }
+
+            uint8_t result = Wire.endTransmission(); // 发送 STOP
+
+            if (result != 0)
+            {
+                return TRANS_FAIL; // 发送失败
+            }
+            return cmd.len; // 返回写入的字节数
         }
 
         int read(uint8_t address, Command &cmd, Buffer<char> &buffer)
@@ -196,27 +246,27 @@ namespace a9
             add(0x01, READ | WRITE, 1, false);                         // OPERATION Retrieves or stores the operation status R/W 1 80h
             add(0x03, SEND, 0, false);                                 // CLEAR_FAULTS Clears the status registers and re-arms the black box registers for updating Send byte 0
             add(0x19, READ, 1, false);                                 // CAPABILITY Retrieves the device capability R 1 B0h
-            add(0x43, READ | WRITE, 2, false);                         // VOUT_UV_WARN_LIMIT Retrieves or stores output undervoltage warn limit threshold R/W 2 0000h
-            add(0x4F, READ | WRITE, 2, false);                         // OT_FAULT_LIMIT Retrieves or stores over temperature fault limit threshold R/W 2/0960h(150°C)
-            add(0x51, READ | WRITE, 2, false);                         // OT_WARN_LIMIT Retrieves or stores over temperature warn limit threshold R/W 2/07D0h (125°C)
-            add(0x57, READ | WRITE, 2, false);                         // VIN_OV_WARN_LIMIT Retrieves or stores input overvoltage warn limit threshold R/W 2 0FFFh
-            add(0x58, READ | WRITE, 2, false);                         // VIN_UV_WARN_LIMIT Retrieves or stores input undervoltage warn limit threshold R/W 2 0000h
+            add(0x43, READ | WRITE, 2, false, &D_4587_2400_2_V);       // VOUT_UV_WARN_LIMIT Retrieves or stores output undervoltage warn limit threshold R/W 2 0000h
+            add(0x4F, READ | WRITE, 2, false, &D_16000_0_3_C);         // OT_FAULT_LIMIT Retrieves or stores over temperature fault limit threshold R/W 2/0960h(150°C)
+            add(0x51, READ | WRITE, 2, false, &D_16000_0_3_C);         // OT_WARN_LIMIT Retrieves or stores over temperature warn limit threshold R/W 2/07D0h (125°C)
+            add(0x57, READ | WRITE, 2, false, &D_4587_1200_2_V);       // VIN_OV_WARN_LIMIT Retrieves or stores input overvoltage warn limit threshold R/W 2 0FFFh
+            add(0x58, READ | WRITE, 2, false, &D_4587_1200_2_V);       // VIN_UV_WARN_LIMIT Retrieves or stores input undervoltage warn limit threshold R/W 2 0000h
             add(0x78, READ, 1, false);                                 // STATUS_BYTE Retrieves information about the parts operating status R 1 49h
             add(0x79, READ, 2, false);                                 // STATUS_WORD Retrieves information about the parts operating status R 2 3849h
             add(0x7A, READ, 1, false);                                 // STATUS_VOUT Retrieves information about output voltage status R 1 00h
             add(0x7C, READ, 1, false);                                 // STATUS_INPUT Retrieves information about input status R 1 10h
             add(0x7D, READ, 1, false);                                 // STATUS_TEMPERATURE Retrieves information about temperature status R 1 00h
             add(0x7E, READ, 1, false);                                 // STATUS_CML Retrieves information about communications status R 1 00h
-            add(0x80, READ, 1, false);                                 // STATUS_MFR_SPECIFIC Retrieves information about circuit breaker and MOSFET shorted status R 1 10h
+            add(0x80, READ, 1, false, &binaryDataType);                // STATUS_MFR_SPECIFIC Retrieves information about circuit breaker and MOSFET shorted status R 1 10h
             add(0x88, READ, 2, false, &D_4587_1200_2_V);               // READ_VIN Retrieves input voltage measurement R 2 0000h
             add(0x8B, READ, 2, false, &D_4587_2400_2_V);               // READ_VOUT Retrieves output voltage measurement R 2 0000h
             add(0x8D, READ, 2, false, &D_16000_0_3_C);                 // READ_TEMPERATURE_1 Retrieves temperature measurement R 2 0190h
             add(0x99, READ, 3, true, &asciiDataType);                  // MFR_ID Retrieves manufacturer ID in ASCII characters (NSC) R 3/4Eh/53h/43h
             add(0x9A, READ, 8, true, &asciiDataType);                  // MFR_MODEL Retrieves part number in ASCII characters. (LM5066) R 8/4Ch/4Dh/35h/30h/36h/36h/0h/0h
-            add(0x9B, READ, 2, false);                                 // MFR_REVISION Retrieves part revision letter or number in ASCII (for example, AA) R 2/41h/41h/
+            add(0x9B, READ, 2, false, &asciiDataType);                 // MFR_REVISION Retrieves part revision letter or number in ASCII (for example, AA) R 2/41h/41h/
             add(0xD0, READ, 2, false, &D_13793_0_1_V);                 // MFR_SPECIFIC_00/READ_VAUX Retrieves auxiliary voltage measurement R 2 0000h
-            add(0xD1, READ, 2, false, &D_5405_600_2_A_CL_GND);         // MFR_SPECIFIC_01/MFR_READ_IIN Retrieves input current measurement R 2 0000h
-            add(0xD2, READ, 2, false);                                 // MFR_SPECIFIC_02/MFR_READ_PIN Retrieves input power measurement R 2 0000h
+            add(0xD1, READ, 2, false, &D_10753_1200_2_A_CL_VDD);       // MFR_SPECIFIC_01/MFR_READ_IIN Retrieves input current measurement R 2 0000h
+            add(0xD2, READ, 2, false, &D_605_8000_3_A_CL_GND);         // MFR_SPECIFIC_02/MFR_READ_PIN Retrieves input power measurement R 2 0000h
             add(0xD3, READ | WRITE, 2, false, &D_5405_600_2_A_CL_GND); // MFR_SPECIFIC_03/MFR_IIN_OC_WARN_LIMIT Retrieves or stores input current limit warn threshold R/W 2 0FFFh
             add(0xD4, READ | WRITE, 2, false, &D_605_8000_3_A_CL_GND); // MFR_SPECIFIC_04/MFR_PIN_OP_WARN_LIMIT Retrieves or stores input power limit warn threshold R/W 2 0FFFh
             add(0xD5, READ, 2, false, &D_605_8000_3_A_CL_GND);         // MFR_SPECIFIC_05/READ_PIN_PEAK Retrieves measured peak input power measurement R 2 0000h
@@ -231,7 +281,7 @@ namespace a9
             add(0xDE, READ, 2, false, &D_5405_600_2_A_CL_GND);         // MFR_SPECIFIC_14/READ_AVG_IIN Retrieves averaged input current measurement R 2 0000h
             add(0xDF, READ, 2, false, &D_605_8000_3_A_CL_GND);         // MFR_SPECIFIC_15/READ_AVG_PIN Retrieves averaged input power measurement R 2 0000h
             add(0xE0, READ, 12, true, &asciiDataType);                 // MFR_SPECIFIC_16/BLACK_BOX_READ Captures diagnostic and telemetry information, which are latched when the first SMBA event occurs after faults are cleared R 12/08E0h/0000h/0000h/0000h/0000h/0000h
-            add(0xE1, READ, 2, false);                                 // MFR_SPECIFIC_17/DIAGNOSTIC_WORD_READ Manufacturer-specific parallel of the STATUS_WORD to convey all FAULT/WARN data in a single transaction R 2 08E0h
+            add(0xE1, READ, 2, false, &binaryDataType);                // MFR_SPECIFIC_17/DIAGNOSTIC_WORD_READ Manufacturer-specific parallel of the STATUS_WORD to convey all FAULT/WARN data in a single transaction R 2 08E0h
             add(0xE2, READ, 12, true, &asciiDataType);                 // MFR_SPECIFIC_18/AVG_BLOCK_READ Retrieves most recent average telemetry and diagnostic information in a single transaction R 12/08E0h/0000h/0000h/0000h/0000h/0000h
         }
     };
