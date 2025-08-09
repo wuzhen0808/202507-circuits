@@ -83,14 +83,20 @@ namespace a9
         };
         class BinaryDataType : public DataType
         {
+            bool isBlock;
+
         public:
-            BinaryDataType()
+            BinaryDataType(bool isBlock)
             {
+                this->isBlock = isBlock;
                 this->isString = true;
             }
+
             void getAsString(Buffer<char> &buffer, int len, String &str) override
             {
-                for (int i = 0; i < len; i++)
+                int fromIdx = (this->isBlock) ? 1 : 0; // if is block, the first byte is len of the data transfered.
+
+                for (int i = fromIdx; i < len; i++)
                 {
                     char ch = buffer[i];
                     for (int j = 7; j >= 0; j--)
@@ -137,7 +143,9 @@ namespace a9
     private:
         AsciiDataType asciiDataType;
         HexDataType hexDataType;
-        BinaryDataType binaryDataType;
+        BinaryDataType binaryDataType = BinaryDataType(false);
+        BinaryDataType blockBinaryDataType = BinaryDataType(true);
+
         DirectDataType D_4587_1200_2_V = DirectDataType(4587, -1200, -2, "V");          // READ_VIN, READ_AVG_VIN,VIN_OV_WARN_LIMIT,VIN_UV_WARN_LIMIT
         DirectDataType D_4587_2400_2_V = DirectDataType(4587, -2400, -2, "V");          // READ_VOUT, READ_AVG_VOUT/VOUT_UV_WARN_LIMIT
         DirectDataType D_13793_0_1_V = DirectDataType(13793, 0, -1, "V");               // READ_VAUX
@@ -251,12 +259,12 @@ namespace a9
             add(0x51, READ | WRITE, 2, false, &D_16000_0_3_C);         // OT_WARN_LIMIT Retrieves or stores over temperature warn limit threshold R/W 2/07D0h (125°C)
             add(0x57, READ | WRITE, 2, false, &D_4587_1200_2_V);       // VIN_OV_WARN_LIMIT Retrieves or stores input overvoltage warn limit threshold R/W 2 0FFFh
             add(0x58, READ | WRITE, 2, false, &D_4587_1200_2_V);       // VIN_UV_WARN_LIMIT Retrieves or stores input undervoltage warn limit threshold R/W 2 0000h
-            add(0x78, READ, 1, false);                                 // STATUS_BYTE Retrieves information about the parts operating status R 1 49h
-            add(0x79, READ, 2, false);                                 // STATUS_WORD Retrieves information about the parts operating status R 2 3849h
-            add(0x7A, READ, 1, false);                                 // STATUS_VOUT Retrieves information about output voltage status R 1 00h
-            add(0x7C, READ, 1, false);                                 // STATUS_INPUT Retrieves information about input status R 1 10h
-            add(0x7D, READ, 1, false);                                 // STATUS_TEMPERATURE Retrieves information about temperature status R 1 00h
-            add(0x7E, READ, 1, false);                                 // STATUS_CML Retrieves information about communications status R 1 00h
+            add(0x78, READ, 1, false, &binaryDataType);                                 // STATUS_BYTE Retrieves information about the parts operating status R 1 49h
+            add(0x79, READ, 2, false, &binaryDataType);                                 // STATUS_WORD Retrieves information about the parts operating status R 2 3849h
+            add(0x7A, READ, 1, false, &binaryDataType);                                 // STATUS_VOUT Retrieves information about output voltage status R 1 00h
+            add(0x7C, READ, 1, false, &binaryDataType);                // STATUS_INPUT Retrieves information about input status R 1 10h
+            add(0x7D, READ, 1, false, &binaryDataType);                                 // STATUS_TEMPERATURE Retrieves information about temperature status R 1 00h
+            add(0x7E, READ, 1, false, &binaryDataType);                                 // STATUS_CML Retrieves information about communications status R 1 00h
             add(0x80, READ, 1, false, &binaryDataType);                // STATUS_MFR_SPECIFIC Retrieves information about circuit breaker and MOSFET shorted status R 1 10h
             add(0x88, READ, 2, false, &D_4587_1200_2_V);               // READ_VIN Retrieves input voltage measurement R 2 0000h
             add(0x8B, READ, 2, false, &D_4587_2400_2_V);               // READ_VOUT Retrieves output voltage measurement R 2 0000h
@@ -274,15 +282,15 @@ namespace a9
             add(0xD7, READ | WRITE, 1, false);                         // MFR_SPECIFIC_07/GATE_MASK Allows the user to disable MOSFET gate shutdown for various fault conditions R/W 1 0000h
             add(0xD8, READ | WRITE, 2, false);                         // MFR_SPECIFIC_08/ALERT_MASK Retrieves or stores user SMBA fault mask R/W 2 0820h
             add(0xD9, READ | WRITE, 1, false);                         // MFR_SPECIFIC_09/DEVICE_SETUP Retrieves or stores information about number of retry attempts R/W 1 0000h
-            add(0xDA, READ, 12, true, &asciiDataType);                 // MFR_SPECIFIC_10/BLOCK_READ Retrieves most recent diagnostic and telemetry information in a single transaction R 12/ 08E0h/0000h/0000h/0000h/0000h/0000h
+            add(0xDA, READ, 12, true, &blockBinaryDataType);           // MFR_SPECIFIC_10/BLOCK_READ Retrieves most recent diagnostic and telemetry information in a single transaction R 12/ 08E0h/0000h/0000h/0000h/0000h/0000h
             add(0xDB, READ | WRITE, 1, false);                         // MFR_SPECIFIC_11/SAMPLES_FOR_AVG Exponent value AVGN for number of samples to be averaged (N = 2 AVGN), range = 00h to 0Ch R/W 1 00h
             add(0xDC, READ, 2, false, &D_4587_1200_2_V);               // MFR_SPECIFIC_12/READ_AVG_VIN Retrieves averaged input voltage measurement R 2 0000h
             add(0xDD, READ, 2, false, &D_4587_2400_2_V);               // MFR_SPECIFIC_13/READ_AVG_VOUT Retrieves averaged output voltage measurement R 2 0000h
             add(0xDE, READ, 2, false, &D_5405_600_2_A_CL_GND);         // MFR_SPECIFIC_14/READ_AVG_IIN Retrieves averaged input current measurement R 2 0000h
             add(0xDF, READ, 2, false, &D_605_8000_3_A_CL_GND);         // MFR_SPECIFIC_15/READ_AVG_PIN Retrieves averaged input power measurement R 2 0000h
-            add(0xE0, READ, 12, true, &asciiDataType);                 // MFR_SPECIFIC_16/BLACK_BOX_READ Captures diagnostic and telemetry information, which are latched when the first SMBA event occurs after faults are cleared R 12/08E0h/0000h/0000h/0000h/0000h/0000h
+            add(0xE0, READ, 12, true, &blockBinaryDataType);           // MFR_SPECIFIC_16/BLACK_BOX_READ Captures diagnostic and telemetry information, which are latched when the first SMBA event occurs after faults are cleared R 12/08E0h/0000h/0000h/0000h/0000h/0000h
             add(0xE1, READ, 2, false, &binaryDataType);                // MFR_SPECIFIC_17/DIAGNOSTIC_WORD_READ Manufacturer-specific parallel of the STATUS_WORD to convey all FAULT/WARN data in a single transaction R 2 08E0h
-            add(0xE2, READ, 12, true, &asciiDataType);                 // MFR_SPECIFIC_18/AVG_BLOCK_READ Retrieves most recent average telemetry and diagnostic information in a single transaction R 12/08E0h/0000h/0000h/0000h/0000h/0000h
+            add(0xE2, READ, 12, true, &blockBinaryDataType);           // MFR_SPECIFIC_18/AVG_BLOCK_READ Retrieves most recent average telemetry and diagnostic information in a single transaction R 12/08E0h/0000h/0000h/0000h/0000h/0000h
         }
     };
 
