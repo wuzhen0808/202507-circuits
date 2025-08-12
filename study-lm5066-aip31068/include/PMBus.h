@@ -4,11 +4,12 @@
 #include <cmath>
 
 #include "a8/util.h"
-#define READ_CMD_ABUSE -1
-#define TRANS_FAIL -2
-#define AVAILABLE_FAIL -3
-#define AVAILABLE_FAIL_2 -4
-#define INVALID_ARGS -5
+#define READ_CMD_ABUSE -11
+#define WRITE_CMD_ABUSE -12
+#define TRANS_FAIL -21
+#define AVAILABLE_FAIL -23
+#define AVAILABLE_FAIL_2 -24
+#define INVALID_ARGS -25
 
 namespace a9
 {
@@ -168,6 +169,18 @@ namespace a9
         }
 
     public:
+        Command *getCommand(uint8_t code)
+        {
+            for (int i = 0; i < commands.len(); i++)
+            {
+                if (commands[i]->code == code)
+                {
+                    return commands[i];
+                }
+            }
+            return 0;
+        }
+
         void getCommands(uint8_t direction, Buffer<Command *> &buf)
         {
             for (int i = 0; i < commands.len(); i++)
@@ -180,24 +193,24 @@ namespace a9
             }
         }
 
-        int write(uint8_t address, Command &cmd, Buffer<char> &buffer)
+        int write(uint8_t address, Command &cmd, Buffer<char> *buffer)
         {
             if (!(cmd.direction | WRITE))
             {
                 return READ_CMD_ABUSE; // Invalid command for writing
             }
 
-            if (cmd.len > 0 && buffer.length() < cmd.len)
+            if (cmd.len > 0 && (buffer == 0 || buffer->length() < cmd.len))
             {
-                return INVALID_ARGS; // 缓冲区长度不足
+                return INVALID_ARGS; // buffer is 0 or len not valid.
             }
 
             Wire.beginTransmission(address);
-            Wire.write(cmd.code); // 发送命令
+            Wire.write(cmd.code); // code
 
             for (int i = 0; i < cmd.len; i++)
             {
-                Wire.write(buffer[i]); // 发送数据
+                Wire.write((*buffer)[i]); // data
             }
 
             uint8_t result = Wire.endTransmission(); // 发送 STOP
@@ -209,11 +222,16 @@ namespace a9
             return cmd.len; // 返回写入的字节数
         }
 
-        int read(uint8_t address, Command &cmd, Buffer<char> &buffer)
+        int read(uint8_t address, Command &cmd, Buffer<char> *buffer)
         {
             if (!(cmd.direction | READ))
             {
                 return READ_CMD_ABUSE; // Invalid command for reading
+            }
+
+            if (cmd.len > 0 && buffer == 0)
+            {
+                return INVALID_ARGS; // no buffer provided to hold data.
             }
 
             Wire.beginTransmission(address);
@@ -242,7 +260,7 @@ namespace a9
             for (int i = 0; i < rawLen; i++)
             {
                 char ch = Wire.read(); // 读取数据
-                buffer.add(ch);        // 添加到缓冲区
+                buffer->add(ch);       // 添加到缓冲区
             }
 
             return rawLen; // 返回读取的字节数
@@ -259,12 +277,12 @@ namespace a9
             add(0x51, READ | WRITE, 2, false, &D_16000_0_3_C);         // OT_WARN_LIMIT Retrieves or stores over temperature warn limit threshold R/W 2/07D0h (125°C)
             add(0x57, READ | WRITE, 2, false, &D_4587_1200_2_V);       // VIN_OV_WARN_LIMIT Retrieves or stores input overvoltage warn limit threshold R/W 2 0FFFh
             add(0x58, READ | WRITE, 2, false, &D_4587_1200_2_V);       // VIN_UV_WARN_LIMIT Retrieves or stores input undervoltage warn limit threshold R/W 2 0000h
-            add(0x78, READ, 1, false, &binaryDataType);                                 // STATUS_BYTE Retrieves information about the parts operating status R 1 49h
-            add(0x79, READ, 2, false, &binaryDataType);                                 // STATUS_WORD Retrieves information about the parts operating status R 2 3849h
-            add(0x7A, READ, 1, false, &binaryDataType);                                 // STATUS_VOUT Retrieves information about output voltage status R 1 00h
+            add(0x78, READ, 1, false, &binaryDataType);                // STATUS_BYTE Retrieves information about the parts operating status R 1 49h
+            add(0x79, READ, 2, false, &binaryDataType);                // STATUS_WORD Retrieves information about the parts operating status R 2 3849h
+            add(0x7A, READ, 1, false, &binaryDataType);                // STATUS_VOUT Retrieves information about output voltage status R 1 00h
             add(0x7C, READ, 1, false, &binaryDataType);                // STATUS_INPUT Retrieves information about input status R 1 10h
-            add(0x7D, READ, 1, false, &binaryDataType);                                 // STATUS_TEMPERATURE Retrieves information about temperature status R 1 00h
-            add(0x7E, READ, 1, false, &binaryDataType);                                 // STATUS_CML Retrieves information about communications status R 1 00h
+            add(0x7D, READ, 1, false, &binaryDataType);                // STATUS_TEMPERATURE Retrieves information about temperature status R 1 00h
+            add(0x7E, READ, 1, false, &binaryDataType);                // STATUS_CML Retrieves information about communications status R 1 00h
             add(0x80, READ, 1, false, &binaryDataType);                // STATUS_MFR_SPECIFIC Retrieves information about circuit breaker and MOSFET shorted status R 1 10h
             add(0x88, READ, 2, false, &D_4587_1200_2_V);               // READ_VIN Retrieves input voltage measurement R 2 0000h
             add(0x8B, READ, 2, false, &D_4587_2400_2_V);               // READ_VOUT Retrieves output voltage measurement R 2 0000h
@@ -279,7 +297,7 @@ namespace a9
             add(0xD4, READ | WRITE, 2, false, &D_605_8000_3_A_CL_GND); // MFR_SPECIFIC_04/MFR_PIN_OP_WARN_LIMIT Retrieves or stores input power limit warn threshold R/W 2 0FFFh
             add(0xD5, READ, 2, false, &D_605_8000_3_A_CL_GND);         // MFR_SPECIFIC_05/READ_PIN_PEAK Retrieves measured peak input power measurement R 2 0000h
             add(0xD6, SEND, 0, false);                                 // MFR_SPECIFIC_06/CLEAR_PIN_PEAK Resets the contents of the peak input power register to 0 Send byte 0
-            add(0xD7, READ | WRITE, 1, false);                         // MFR_SPECIFIC_07/GATE_MASK Allows the user to disable MOSFET gate shutdown for various fault conditions R/W 1 0000h
+            add(0xD7, READ | WRITE, 1, false, &binaryDataType);        // MFR_SPECIFIC_07/GATE_MASK Allows the user to disable MOSFET gate shutdown for various fault conditions R/W 1 0000h
             add(0xD8, READ | WRITE, 2, false);                         // MFR_SPECIFIC_08/ALERT_MASK Retrieves or stores user SMBA fault mask R/W 2 0820h
             add(0xD9, READ | WRITE, 1, false);                         // MFR_SPECIFIC_09/DEVICE_SETUP Retrieves or stores information about number of retry attempts R/W 1 0000h
             add(0xDA, READ, 12, true, &blockBinaryDataType);           // MFR_SPECIFIC_10/BLOCK_READ Retrieves most recent diagnostic and telemetry information in a single transaction R 12/ 08E0h/0000h/0000h/0000h/0000h/0000h

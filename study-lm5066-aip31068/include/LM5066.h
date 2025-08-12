@@ -17,7 +17,13 @@ namespace a9
         ~LM5066();
         int init();
         bool isReady();
-        int read(PMBus::Command &cmd, Buffer<char> &buffer);
+        int read(PMBus::Command &cmd, Buffer<char> *buffer)
+        {
+            return pmbus->read(address, cmd, buffer);
+        }
+        int write(PMBus::Command &cmd, Buffer<char> *buffer) {
+            return pmbus -> write(address, cmd, buffer);
+        }
     };
 }
 #endif

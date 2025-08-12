@@ -22,8 +22,13 @@ namespace a9
     using a8::util::StringUtil;
 
     using a9::PMBus;
+
+    
+    void write(String opName, uint8_t cmdCode, Buffer<char> *buf);
+
     uint8_t aipAddress = 0x7C >> 1; //
     uint8_t lmAddress = 0x15;       //
+    float mRsense = 1.0f;           // 1mR
 
     class ArduinoInput : public Reader
     {
@@ -72,6 +77,38 @@ namespace a9
     PMBus pmbus;
     LM5066 lm5066(lmAddress, &aip31068, &pmbus);
 
+    void CLEAN_PIN_PEAK()
+    {
+        write("CLEAN_PIN_PEAK", 0xD6, 0);
+    }
+
+    void GATE_MASK_IinPfetFault()
+    {
+        Buffer<char> buf;
+        buf.add(0b00001000);
+        write("GATE_MASK:IinPfetFault", 0xD7, &buf);
+    }
+
+    void write(String opName, uint8_t cmdCode, Buffer<char> *buf)
+    {
+        aip31068.ln().print(opName);
+        PMBus::Command *cmd = pmbus.getCommand(cmdCode);
+        if (cmd == 0)
+        {
+            aip31068.ln().print("No such command.");
+            return;
+        }
+        int len = lm5066.write(*cmd, buf);
+        if (len < 0)
+        {
+            aip31068.ln().print("Write failed.");
+        }
+        else
+        {
+            aip31068.ln().print("Write succ.");
+        }
+    }
+
     void readAll()
     {
         //
@@ -87,7 +124,7 @@ namespace a9
             String codeStr = StringUtil::toHexString(&code, 1);
             aip31068.ln().print("[").print(i).print("]").print(codeStr).print("=");
             buf.clear();
-            int len = lm5066.read(*cmd, buf);
+            int len = lm5066.read(*cmd, &buf);
             if (len > 0)
             {
 
@@ -160,9 +197,17 @@ namespace a9
         while (1)
         {
             fg->enter(cc);
-            if (fg->missionSelect == MissionType::READ_ALL)
+            if (fg->missionSelect == Config::MissionType::READ_ALL)
             {
                 readAll();
+            }
+            else if (fg->missionSelect == Config::MissionType::GATE_MASK_IIN_PFET_FAULT)
+            {
+                GATE_MASK_IinPfetFault();
+            }
+            else if (fg->missionSelect == Config::MissionType::CLEAN_PIN_PEAK)
+            {
+                CLEAN_PIN_PEAK();
             }
             else
             {

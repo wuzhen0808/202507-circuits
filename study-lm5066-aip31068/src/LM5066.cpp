@@ -6,7 +6,7 @@ namespace a9
 {
     using a8::util::Array;
 
-    LM5066::LM5066(uint8_t address, AIP31068 *aip31068, PMBus * pmbus)
+    LM5066::LM5066(uint8_t address, AIP31068 *aip31068, PMBus *pmbus)
     {
         this->address = address;
         this->aip31068 = aip31068;
@@ -46,11 +46,6 @@ namespace a9
             delay(100);
         }
         return false; // ERROR
-    }
-
-    int LM5066::read(PMBus::Command & cmd, Buffer<char> &buffer)
-    {
-       return pmbus->read(this->address, cmd, buffer);
     }
 
 }

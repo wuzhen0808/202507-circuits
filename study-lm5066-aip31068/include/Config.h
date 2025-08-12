@@ -9,27 +9,31 @@ namespace a9
     using a8::util::Directory;
     using a8::util::EnumType;
     using a8::util::String;
-    enum MissionType
-    {
-        READ_ALL,
-        DISABLE_OT_LIMIT_FAULT
-    };
 
-    
     class Config : public ConfigItem
     {
-        
+    public:
+        enum MissionType
+        {
+            READ_ALL,
+            GATE_MASK_IIN_PFET_FAULT,
+            CLEAN_PIN_PEAK,
+        };
+
+    private:
         EnumType<MissionType> missions;
         ConfigItem *startConfigItem;
-        
-    public:    
+
+    public:
         MissionType missionSelect; // -1 means not selected.
 
     public:
         Config()
         {
-            missions.add(MissionType::READ_ALL,"Read-All");
-            missions.add(MissionType::DISABLE_OT_LIMIT_FAULT,"Disable-OT-Limit-Fault");
+            missions.add(MissionType::READ_ALL, "Read-All");
+            missions.add(MissionType::GATE_MASK_IIN_PFET_FAULT, "GATE_MASK:IIN_PFET_FAULT");
+            missions.add(MissionType::CLEAN_PIN_PEAK, "CLEAN_PIN_PEAK");
+
             missionSelect = MissionType::READ_ALL;
         }
         void onAttached() override
@@ -49,9 +53,13 @@ namespace a9
                     {
                         title.set<String>("mission", "Read-All");
                     }
-                    else if (this_->missionSelect == MissionType::DISABLE_OT_LIMIT_FAULT)
+                    else if (this_->missionSelect == MissionType::GATE_MASK_IIN_PFET_FAULT)
                     {
-                        title.set<String>("mission", "Dis-OT-Limit-Fault");
+                        title.set<String>("mission", "GATE_MASK:IIN/PFET-FAULT");
+                    }
+                    else if (this_->missionSelect == MissionType::CLEAN_PIN_PEAK)
+                    {
+                        title.set<String>("mission", "CLEAN_PIN_PEAK");
                     }
                     else
                     {
@@ -67,7 +75,11 @@ namespace a9
 
         bool isValid() override
         {
-            if (this->missionSelect == MissionType::DISABLE_OT_LIMIT_FAULT)
+            if (this->missionSelect == MissionType::GATE_MASK_IIN_PFET_FAULT)
+            {
+                return true;
+            }
+            else if (this->missionSelect == MissionType::CLEAN_PIN_PEAK)
             {
                 return true;
             }
