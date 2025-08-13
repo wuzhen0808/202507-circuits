@@ -18,6 +18,7 @@ namespace a9
             READ_ALL,
             GATE_MASK_IIN_PFET_FAULT,
             CLEAN_PIN_PEAK,
+            CLEAR_FAULTS,
         };
 
     private:
@@ -33,6 +34,7 @@ namespace a9
             missions.add(MissionType::READ_ALL, "Read-All");
             missions.add(MissionType::GATE_MASK_IIN_PFET_FAULT, "GATE_MASK:IIN_PFET_FAULT");
             missions.add(MissionType::CLEAN_PIN_PEAK, "CLEAN_PIN_PEAK");
+            missions.add(MissionType::CLEAR_FAULTS, "CLEAR_FAULTS");
 
             missionSelect = MissionType::READ_ALL;
         }
@@ -61,6 +63,10 @@ namespace a9
                     {
                         title.set<String>("mission", "CLEAN_PIN_PEAK");
                     }
+                    else if (this_->missionSelect == MissionType::CLEAR_FAULTS)
+                    {
+                        title.set<String>("mission", "CLEAR_FAULTS");
+                    }
                     else
                     {
                         title.set<String>("mission", "<Please-select>");
@@ -84,6 +90,10 @@ namespace a9
                 return true;
             }
             else if (this->missionSelect == MissionType::READ_ALL)
+            {
+                return true;
+            }
+            else if (this->missionSelect == MissionType::CLEAR_FAULTS)
             {
                 return true;
             }

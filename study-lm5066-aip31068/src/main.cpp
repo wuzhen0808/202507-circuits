@@ -23,12 +23,13 @@ namespace a9
 
     using a9::PMBus;
 
-    
     void write(String opName, uint8_t cmdCode, Buffer<char> *buf);
 
     uint8_t aipAddress = 0x7C >> 1; //
-    uint8_t lmAddress = 0x15;       //
-    float mRsense = 1.0f;           // 1mR
+    // uint8_t lmAddress = 0x15;       //
+    uint8_t lmAddress = 0x40; //
+
+    float mRsense = 1.0f; // 1mR
 
     class ArduinoInput : public Reader
     {
@@ -77,6 +78,10 @@ namespace a9
     PMBus pmbus;
     LM5066 lm5066(lmAddress, &aip31068, &pmbus);
 
+    void CLEAR_FAULTS()
+    {
+        write("CLEAR_FAULTS", 0x03, 0);
+    }
     void CLEAN_PIN_PEAK()
     {
         write("CLEAN_PIN_PEAK", 0xD6, 0);
@@ -209,6 +214,11 @@ namespace a9
             {
                 CLEAN_PIN_PEAK();
             }
+            else if (fg->missionSelect == Config::MissionType::CLEAR_FAULTS)
+            {
+                CLEAR_FAULTS();
+            }
+
             else
             {
                 aip31068.ln().print("MissionSelect:").print(fg->missionSelect);
